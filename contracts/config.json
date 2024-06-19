@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "deployAliases": {
+    "colorwar": {
+      "networkId": "testnet",
+      "url": "http://127.0.0.1:8080/graphql",
+      "keyPath": "keys/colorwar.json",
+      "feepayerKeyPath": "/Users/gorkemyavuz/.cache/zkapp-cli/keys/locacco.json",
+      "feepayerAlias": "locacco",
+      "fee": "0.1",
+      "smartContract": "ColorWar"
+    }
+  }
+}
