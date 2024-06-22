@@ -5,7 +5,7 @@ const { NEXT_PUBLIC_MONGODB_USER, NEXT_PUBLIC_MONGODB_PASS } = process.env;
 
 const uri = `mongodb+srv://${NEXT_PUBLIC_MONGODB_USER}:${NEXT_PUBLIC_MONGODB_PASS}@cluster0.6xxzz6z.mongodb.net/?retryWrites=true&w=majority`;
 
-const mongoDBClient = new MongoClient(uri, {
+export const mongoDBClient = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,

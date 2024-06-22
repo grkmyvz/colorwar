@@ -1,11 +1,11 @@
-import { Field, UInt64, PublicKey, fetchAccount } from "o1js";
+import { Field, PublicKey, fetchAccount } from "o1js";
 
 import type {
   WorkerFunctions,
   ZkappWorkerReponse,
   ZkappWorkerRequest,
 } from "./zkappWorker";
-import { ColorWarMerkleWitness, Pixel, PixelJSON } from "@/helpers/types";
+import { PixelJSON } from "@/helpers/types";
 
 export default class ZkappWorkerClient {
   // ---------------------------------------------------------------------------------------
@@ -63,10 +63,10 @@ export default class ZkappWorkerClient {
     });
   }
 
-  updateGenesisRootTransaction(feePayerAddress: string, newRoot: string) {
+  updateGenesisRootTransaction(feePayerAddress: string, pixels: PixelJSON[]) {
     return this._call("updateGenesisRootTransaction", {
       feePayerAddress,
-      newRoot,
+      pixels,
     });
   }
 

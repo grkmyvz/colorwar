@@ -1,10 +1,8 @@
 import {
-  Field,
   MerkleTree,
   Mina,
   Poseidon,
   PublicKey,
-  UInt32,
   UInt64,
   fetchAccount,
 } from "o1js";
@@ -26,7 +24,9 @@ const state = {
 
 const functions = {
   setActiveInstanceToDevnet: async (args: {}) => {
-    const Network = Mina.Network("http://127.0.0.1:8080/graphql");
+    const Network = Mina.Network(
+      "https://api.minascan.io/node/devnet/v1/graphql"
+    );
     console.log("Devnet network instance configured.");
     Mina.setActiveInstance(Network);
   },
@@ -63,6 +63,7 @@ const functions = {
   }) => {
     await fetchAccount({ publicKey: args.feePayerAddress });
     const feePayer = PublicKey.fromBase58(args.feePayerAddress);
+
     const argPixel = new Pixel({
       id: UInt64.from(args.pixel.id),
       color: UInt64.from(args.pixel.color),
@@ -70,6 +71,7 @@ const functions = {
       cost: UInt64.from(args.pixel.cost),
       timestamp: UInt64.from(args.pixel.timestamp),
     });
+
     const argColor = UInt64.from(args.newColor);
 
     let tree = new MerkleTree(14);
@@ -97,26 +99,38 @@ const functions = {
   },
   updateGenesisRootTransaction: async (args: {
     feePayerAddress: string;
-    newRoot: string;
+    pixels: PixelJSON[];
   }) => {
     await fetchAccount({ publicKey: args.feePayerAddress });
     const feePayer = PublicKey.fromBase58(args.feePayerAddress);
+
+    let tree = new MerkleTree(14);
+    for (let i = 0; i < args.pixels.length; i++) {
+      const p = new Pixel({
+        id: UInt64.from(args.pixels[i].id),
+        color: UInt64.from(args.pixels[i].color),
+        painter: PublicKey.fromBase58(args.pixels[i].painter),
+        cost: UInt64.from(args.pixels[i].cost),
+        timestamp: UInt64.from(args.pixels[i].timestamp),
+      });
+      tree.setLeaf(BigInt(i), Poseidon.hash(Pixel.toFields(p)));
+    }
+
+    const genesisRoot = tree.getRoot();
+
     const transaction = await Mina.transaction(
       { sender: feePayer },
       async () => {
-        await state.zkapp!.setGenesisRoot(Field.from(args.newRoot));
+        await state.zkapp!.setGenesisRoot(genesisRoot);
       }
     );
     state.transaction = transaction;
   },
   proveUpdateTransaction: async (args: {}) => {
-    try {
-      console.log("hey");
-      await state.transaction!.prove();
-      console.log("ho");
-    } catch (error) {
-      console.error(error);
-    }
+    console.log("hey");
+    console.log(state.transaction!.toJSON());
+    await state.transaction!.prove();
+    console.log("ho");
   },
   getTransactionJSON: async (args: {}) => {
     return state.transaction!.toJSON();

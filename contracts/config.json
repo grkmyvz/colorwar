@@ -3,10 +3,10 @@
   "deployAliases": {
     "colorwar": {
       "networkId": "testnet",
-      "url": "http://127.0.0.1:8080/graphql",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/colorwar.json",
-      "feepayerKeyPath": "/Users/gorkemyavuz/.cache/zkapp-cli/keys/locacco.json",
-      "feepayerAlias": "locacco",
+      "feepayerKeyPath": "/Users/gorkemyavuz/.cache/zkapp-cli/keys/daccount.json",
+      "feepayerAlias": "daccount",
       "fee": "0.1",
       "smartContract": "ColorWar"
     }

@@ -10,7 +10,7 @@ import colorList from "@/helpers/colorList";
 import { PixelJSON } from "@/helpers/types";
 
 let transactionFee = 0.1;
-const ZKAPP_ADDRESS = "B62qp85YJ3Qc6gPWfLFobTLevLp5QfwURiN2eok8afgaYrimDyokQ89";
+const ZKAPP_ADDRESS = "B62qpYNNUi2SxTN1vG3PKhZbcHCgUD1ZwoJwR8cJUqJnyGvJQbq63xW";
 
 export default function Home() {
   const [state, setState] = useState({
@@ -100,6 +100,7 @@ export default function Home() {
             "Content-Type": "application/json",
           },
         });
+
         const data = await pixelRes.json();
 
         setState({
@@ -214,60 +215,51 @@ export default function Home() {
     }
   };
 
-  // const handleGenesisRoot = async () => {
-  //   setState({ ...state, creatingTransaction: true });
-  //   try {
-  //     setDisplayText("Creating a transaction...");
-  //     console.log("Creating a transaction...");
+  const handleGenesisRoot = async () => {
+    setState({ ...state, creatingTransaction: true });
+    try {
+      setDisplayText("Creating a transaction...");
+      console.log("Creating a transaction...");
 
-  //     await state.zkappWorkerClient!.fetchAccount({
-  //       publicKey: state.publicKey!,
-  //     });
+      await state.zkappWorkerClient!.fetchAccount({
+        publicKey: state.publicKey!,
+      });
 
-  //     let tree = new MerkleTree(14);
-  //     for (let i = 0; i < state.pixels.length; i++) {
-  //       tree.setLeaf(BigInt(i), Poseidon.hash(Pixel.toFields(state.pixels[i])));
-  //     }
+      await state.zkappWorkerClient!.updateGenesisRootTransaction(
+        state.publicKey!.toBase58(),
+        state.pixels
+      );
 
-  //     const genesisRoot = tree.getRoot();
+      setDisplayText("Creating proof...");
+      console.log("Creating proof...");
+      await state.zkappWorkerClient!.proveUpdateTransaction();
 
-  //     console.log("genesisRoot:", genesisRoot);
+      console.log("Requesting send transaction...");
+      setDisplayText("Requesting send transaction...");
+      const transactionJSON =
+        await state.zkappWorkerClient!.getTransactionJSON();
 
-  //     await state.zkappWorkerClient!.updateGenesisRootTransaction(
-  //       state.publicKey!.toBase58(),
-  //       genesisRoot.toString()
-  //     );
+      setDisplayText("Getting transaction JSON...");
+      console.log("Getting transaction JSON...");
+      const { hash } = await (window as any).mina.sendTransaction({
+        transaction: transactionJSON,
+        feePayer: {
+          fee: transactionFee,
+          memo: "",
+        },
+      });
 
-  //     setDisplayText("Creating proof...");
-  //     console.log("Creating proof...");
-  //     await state.zkappWorkerClient!.proveUpdateTransaction();
+      const transactionLink = `https://minascan.io/devnet/tx/${hash}`;
+      console.log(`View transaction at ${transactionLink}`);
 
-  //     console.log("Requesting send transaction...");
-  //     setDisplayText("Requesting send transaction...");
-  //     const transactionJSON =
-  //       await state.zkappWorkerClient!.getTransactionJSON();
-
-  //     setDisplayText("Getting transaction JSON...");
-  //     console.log("Getting transaction JSON...");
-  //     const { hash } = await (window as any).mina.sendTransaction({
-  //       transaction: transactionJSON,
-  //       feePayer: {
-  //         fee: transactionFee,
-  //         memo: "",
-  //       },
-  //     });
-
-  //     const transactionLink = `https://minascan.io/devnet/tx/${hash}`;
-  //     console.log(`View transaction at ${transactionLink}`);
-
-  //     setTransactionLink(transactionLink);
-  //     setDisplayText(transactionLink);
-  //   } catch (e) {
-  //     console.error(e);
-  //   } finally {
-  //     setState({ ...state, creatingTransaction: false });
-  //   }
-  // };
+      setTransactionLink(transactionLink);
+      setDisplayText(transactionLink);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setState({ ...state, creatingTransaction: false });
+    }
+  };
 
   const getMerkleRoot = async () => {
     console.log("Getting zkApp root state...");
@@ -337,7 +329,7 @@ export default function Home() {
     mainContent = (
       <div style={{ justifyContent: "center", alignItems: "center" }}>
         <div className={styles.center} style={{ padding: 5 }}>
-          {/* <button onClick={handleGenesisRoot}>Set Genesis Root</button> */}
+          <button onClick={handleGenesisRoot}>Set Genesis Root</button>
           zkApp Merkle Root: {state.rootHash!.toString()}{" "}
           <button onClick={getMerkleRoot}>Refresh Root</button>
         </div>
