@@ -1,4 +1,4 @@
-import { PublicKey, Struct, UInt64 } from 'o1js';
+import { PublicKey, Struct, UInt32, UInt64 } from 'o1js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,20 +8,36 @@ class Pixel extends Struct({
   color: UInt64,
   painter: PublicKey,
   cost: UInt64,
-  timestamp: UInt64,
+  blockLength: UInt32,
 }) {}
 
 function createGenesisData() {
+  const colors = [
+    { color: 'red', code: 114 },
+    { color: 'blue', code: 98 },
+    { color: 'yellow', code: 121 },
+    { color: 'green', code: 103 },
+  ];
+
+  const colorCodes: number[] = [];
+  colors.forEach((color) => {
+    for (let i = 0; i < 256; i++) {
+      colorCodes.push(color.code);
+    }
+  });
+
+  colorCodes.sort(() => Math.random() - 0.5);
+
   const pixelArray = [];
-  for (let i = 0; i < 1000; i++) {
+  for (let i = 0; i < 1024; i++) {
     const pixel = new Pixel({
       id: UInt64.from(i),
-      color: UInt64.from(87),
+      color: UInt64.from(colorCodes[i]),
       painter: PublicKey.fromBase58(
-        'B62qkfXKWTtEksquywuU1PBhKJJHd27PyMWuijfccrGF2VYpaKV5KZt'
+        'B62qrfQvCh21fCBPtEDQzYcajGaPobJQBowRYLjuFgPm1Xn8Z3LBdna'
       ),
       cost: UInt64.from(100000000),
-      timestamp: UInt64.from(0),
+      blockLength: UInt32.from(0),
     });
     pixelArray.push(pixel);
   }

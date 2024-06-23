@@ -3,7 +3,6 @@ import {
   Field,
   MerkleTree,
   Mina,
-  Poseidon,
   PrivateKey,
   PublicKey,
   UInt32,
@@ -11,7 +10,7 @@ import {
 } from 'o1js';
 import { ColorWar, ColorWarMerkleWitness, Pixel } from './ColorWar';
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 describe('ColorWar', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -53,13 +52,13 @@ describe('ColorWar', () => {
 
   function createGenesisData() {
     const pixelArray = [];
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 1024; i++) {
       const pixel = new Pixel({
         id: UInt64.from(i),
         color: UInt64.from(87),
-        painter: PublicKey.empty(),
+        painter: deployerAccount,
         cost: UInt64.from(100000000),
-        timestamp: UInt64.from(0),
+        blockLength: UInt32.from(0),
       });
       pixelArray.push(pixel);
     }
@@ -76,9 +75,11 @@ describe('ColorWar', () => {
 
   async function initializeRoot() {
     pixels = createGenesisData();
-    tree = new MerkleTree(14);
+    tree = new MerkleTree(11);
     for (let i = 0; i < pixels.length; i++) {
-      tree.setLeaf(BigInt(i), Poseidon.hash(Pixel.toFields(pixels[i])));
+      const pixelHash = pixels[i].hash();
+      tree.setLeaf(BigInt(i), pixelHash);
+      expect(tree.getLeaf(BigInt(i))).toEqual(pixelHash);
     }
   }
 
@@ -105,7 +106,6 @@ describe('ColorWar', () => {
     await initializeRoot();
 
     const genesisRoot = tree.getRoot();
-
     await setGenesisRoot(genesisRoot);
 
     const w = tree.getWitness(BigInt(1));
@@ -116,6 +116,7 @@ describe('ColorWar', () => {
     const txn = await Mina.transaction(senderAccount, async () => {
       await zkApp.occupyPixel(pixel, UInt64.from(66), witness);
     });
+
     await txn.prove();
     await txn.sign([senderKey]).send();
 
@@ -129,11 +130,10 @@ describe('ColorWar', () => {
       color: UInt64.from(pdat.color),
       painter: PublicKey.fromBase58(pdat.painter.toString()),
       cost: UInt64.from(pdat.cost),
-      timestamp: UInt64.from(pdat.timestamp),
+      blockLength: UInt32.from(pdat.blockLength),
     });
 
-    tree.setLeaf(BigInt(1), Poseidon.hash(Pixel.toFields(newPixel)));
-
+    tree.setLeaf(BigInt(1), newPixel.hash());
     expect(zkApp.root.getAndRequireEquals()).toEqual(tree.getRoot());
   });
 });

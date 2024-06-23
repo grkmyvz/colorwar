@@ -1,3 +1,3 @@
-import { Add } from './Add.js';
+import { ColorWar } from './ColorWar.js';
 
-export { Add };
+export { ColorWar };
