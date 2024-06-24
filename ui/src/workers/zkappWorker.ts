@@ -3,6 +3,7 @@ import {
   Mina,
   Poseidon,
   PublicKey,
+  UInt32,
   UInt64,
   fetchAccount,
 } from "o1js";
@@ -11,8 +12,12 @@ type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
 // ---------------------------------------------------------------------------------------
 
-import type { ColorWar } from "../../../contracts/src/ColorWar";
-import { ColorWarMerkleWitness, Pixel, PixelJSON } from "@/helpers/types";
+import { ColorWar } from "../../../contracts/build/src/ColorWar.js";
+import { PixelJSON } from "@/helpers/types";
+import {
+  ColorWarMerkleWitness,
+  Pixel,
+} from "../../../contracts/build/src/ColorWar.js";
 
 const state = {
   ColorWar: null as null | typeof ColorWar,
@@ -24,9 +29,12 @@ const state = {
 
 const functions = {
   setActiveInstanceToDevnet: async (args: {}) => {
-    const Network = Mina.Network(
-      "https://api.minascan.io/node/devnet/v1/graphql"
-    );
+    // Archive network: https://api.minascan.io/archive/devnet/v1/graphql
+    // Devnet network: https://api.minascan.io/node/devnet/v1/graphql
+    const Network = Mina.Network({
+      mina: "https://api.minascan.io/node/devnet/v1/graphql",
+      archive: "https://api.minascan.io/archive/devnet/v1/graphql",
+    });
     console.log("Devnet network instance configured.");
     Mina.setActiveInstance(Network);
   },
@@ -69,19 +77,19 @@ const functions = {
       color: UInt64.from(args.pixel.color),
       painter: PublicKey.fromBase58(args.pixel.painter),
       cost: UInt64.from(args.pixel.cost),
-      timestamp: UInt64.from(args.pixel.timestamp),
+      blockLength: UInt32.from(args.pixel.blockLength),
     });
 
     const argColor = UInt64.from(args.newColor);
 
-    let tree = new MerkleTree(14);
+    let tree = new MerkleTree(11);
     for (let i = 0; i < args.pixels.length; i++) {
       const p = new Pixel({
         id: UInt64.from(args.pixels[i].id),
         color: UInt64.from(args.pixels[i].color),
         painter: PublicKey.fromBase58(args.pixels[i].painter),
         cost: UInt64.from(args.pixels[i].cost),
-        timestamp: UInt64.from(args.pixels[i].timestamp),
+        blockLength: UInt32.from(args.pixels[i].blockLength),
       });
       tree.setLeaf(BigInt(i), Poseidon.hash(Pixel.toFields(p)));
     }
@@ -96,6 +104,7 @@ const functions = {
       }
     );
     state.transaction = transaction;
+    console.log(JSON.stringify(argPixel), JSON.stringify(argColor));
   },
   updateGenesisRootTransaction: async (args: {
     feePayerAddress: string;
@@ -104,16 +113,16 @@ const functions = {
     await fetchAccount({ publicKey: args.feePayerAddress });
     const feePayer = PublicKey.fromBase58(args.feePayerAddress);
 
-    let tree = new MerkleTree(14);
+    let tree = new MerkleTree(11);
     for (let i = 0; i < args.pixels.length; i++) {
       const p = new Pixel({
         id: UInt64.from(args.pixels[i].id),
         color: UInt64.from(args.pixels[i].color),
         painter: PublicKey.fromBase58(args.pixels[i].painter),
         cost: UInt64.from(args.pixels[i].cost),
-        timestamp: UInt64.from(args.pixels[i].timestamp),
+        blockLength: UInt32.from(args.pixels[i].blockLength),
       });
-      tree.setLeaf(BigInt(i), Poseidon.hash(Pixel.toFields(p)));
+      tree.setLeaf(BigInt(i), p.hash());
     }
 
     const genesisRoot = tree.getRoot();
@@ -127,13 +136,16 @@ const functions = {
     state.transaction = transaction;
   },
   proveUpdateTransaction: async (args: {}) => {
-    console.log("hey");
-    console.log(state.transaction!.toJSON());
     await state.transaction!.prove();
-    console.log("ho");
   },
   getTransactionJSON: async (args: {}) => {
     return state.transaction!.toJSON();
+  },
+  getEvents: async (args: { blockLength: number }) => {
+    const events = await state.zkapp?.fetchEvents(
+      UInt32.from(args.blockLength)
+    );
+    return events;
   },
 };
 

@@ -8,9 +8,10 @@ import ZkappWorkerClient from "../workers/zkappWorkerClient";
 import numToColorCode from "@/helpers/numToColorCode";
 import colorList from "@/helpers/colorList";
 import { PixelJSON } from "@/helpers/types";
+import { ResData } from "./api/get-pixels.js";
 
 let transactionFee = 0.1;
-const ZKAPP_ADDRESS = "B62qpYNNUi2SxTN1vG3PKhZbcHCgUD1ZwoJwR8cJUqJnyGvJQbq63xW";
+const ZKAPP_ADDRESS = "B62qr4sMJPCaKKQ7XLSXVvyhrMXz3njLxcdxVGxQ7v2LR89EWwEXnUF";
 
 export default function Home() {
   const [state, setState] = useState({
@@ -94,14 +95,22 @@ export default function Home() {
 
         console.log("Getting pixels...");
         setDisplayText("Getting pixels...");
-        const pixelRes = await fetch("/api/get-pixels", {
+        const pixelFetch = await fetch("/api/get-pixels", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
         });
 
-        const data = await pixelRes.json();
+        const pixelRes: ResData = await pixelFetch.json();
+
+        if (pixelRes.data === undefined) {
+          throw new Error("No pixels found");
+        }
+
+        const events = await zkappWorkerClient.getEvents(0);
+
+        console.log(events);
 
         setState({
           ...state,
@@ -112,7 +121,7 @@ export default function Home() {
           zkappPublicKey,
           accountExists,
           rootHash,
-          pixels: data.data as PixelJSON[],
+          pixels: pixelRes.data,
         });
 
         console.log("Setup done");
@@ -186,6 +195,7 @@ export default function Home() {
 
       setDisplayText("Creating proof...");
       console.log("Creating proof...");
+
       await state.zkappWorkerClient!.proveUpdateTransaction();
 
       console.log("Requesting send transaction...");
@@ -343,8 +353,8 @@ export default function Home() {
     canvas = (
       <div
         style={{
-          width: "800px",
-          height: "525px",
+          width: "640px",
+          height: "672px",
           backgroundColor: "black",
         }}
       >
@@ -356,14 +366,12 @@ export default function Home() {
         >
           {state.pixels.map((pixel) => {
             return (
-              <div key={pixel.id.toString()} className={customStyles.tooltip}>
+              <div key={pixel.id} className={customStyles.tooltip}>
                 <div
                   style={{
                     width: "16px",
                     height: "16px",
-                    backgroundColor: `${numToColorCode(
-                      Number(pixel.color.toString())
-                    )}`,
+                    backgroundColor: `${numToColorCode(Number(pixel.color))}`,
                     margin: "2px",
                   }}
                   onClick={() => onPixelClick(pixel)}
@@ -375,7 +383,7 @@ export default function Home() {
                     {pixel.painter.slice(-6)}
                   </p>
                   <p>Cost: {pixel.cost}</p>
-                  <p>Timestamp: {pixel.timestamp}</p>
+                  <p>Timestamp: {pixel.blockLength}</p>
                 </span>
               </div>
             );
@@ -392,7 +400,7 @@ export default function Home() {
           </span>
           <h1>Pixel # {selectedPixel?.id}</h1>
           <p>Painter: {selectedPixel?.painter}</p>
-          <p>Timestamp: {selectedPixel?.timestamp}</p>
+          <p>Timestamp: {selectedPixel?.blockLength}</p>
           <hr />
           <h3
             style={{
@@ -414,12 +422,12 @@ export default function Home() {
                   key={color.code}
                   style={{
                     width: `${
-                      Number(selectedPixel?.color.toString()) === color.code
+                      Number(selectedPixel?.color) === color.code
                         ? "24px"
                         : "18px"
                     }`,
                     height: `${
-                      Number(selectedPixel?.color.toString()) === color.code
+                      Number(selectedPixel?.color) === color.code
                         ? "24px"
                         : "18px"
                     }`,
@@ -436,16 +444,13 @@ export default function Home() {
           <button
             className={styles.card}
             style={{
-              backgroundColor: numToColorCode(
-                Number(selectedPixel?.color.toString())
-              ),
+              backgroundColor: numToColorCode(Number(selectedPixel?.color)),
               cursor: "pointer",
               width: "94%",
             }}
             onClick={onChangePixelColor}
           >
-            Change Color ({Number(selectedPixel?.cost.toString()) / 10 ** 9}{" "}
-            MINA)
+            Change Color ({Number(selectedPixel?.cost) / 10 ** 9} MINA)
           </button>
         </div>
       </div>

@@ -79,6 +79,11 @@ export default class ZkappWorkerClient {
     return result;
   }
 
+  async getEvents(blockLength: number) {
+    const result = await this._call("getEvents", { blockLength });
+    return result;
+  }
+
   // ---------------------------------------------------------------------------------------
 
   worker: Worker;

@@ -1,10 +1,11 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { getPixels } from "@/helpers/mongodb";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { PixelJSON } from "@/helpers/types";
 
-type ResData = {
+export type ResData = {
   status: number;
-  data?: any;
+  data?: PixelJSON[];
   error?: string;
 };
 

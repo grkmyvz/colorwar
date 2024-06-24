@@ -27,7 +27,7 @@ export async function getPixels(): Promise<PixelJSON[]> {
         color: pixel.color,
         painter: pixel.painter,
         cost: pixel.cost,
-        timestamp: pixel.timestamp,
+        blockLength: pixel.blockLength,
       };
     });
     return result;
